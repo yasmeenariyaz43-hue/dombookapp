@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Management (Admin)</title>
+    <style>
+        /* styles.css content embedded here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        h1, h2, h3 {
+            color: #333;
+            text-align: center;
+        }
+
+        /* Form Styling */
+        .form-section, .controls-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #addBookForm {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        #addBookForm input, #addBookForm select, button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Controls Styling */
+        .controls-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Grid Layout for Books */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            justify-items: center;
+        }
+
+        /* Book Card Styling */
+        .book-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Good box shadow */
+            overflow: hidden;
+            text-align: center;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .book-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .book-card img {
+            width: 100%;
+            height: auto;
+            max-height: 250px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .card-content {
+            padding: 15px;
+        }
+
+        .card-content h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+
+        .card-content p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .delete-btn {
+            background-color: #dc3545;
+            width: 100%;
+            border-radius: 0 0 8px 8px;
+            padding: 10px;
+        }
+
+        .delete-btn:hover {
+            background-color: #a71d2a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Book Management Page</h1>
+        
+        <!-- Add Book Form Section -->
+        <section class="form-section">
+            <h3>Add Book Form</h3>
+            <form id="addBookForm">
+                <input type="text" id="title" placeholder="Title" required>
+                <input type="text" id="author" placeholder="Author" required>
+                <select id="category" required>
+                    <option value="">Select Category</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Comedy">Comedy</option>
+                    <option value="Technical">Technical</option>
+                </select>
+                <button type="submit">Add Book</button>
+            </form>
+        </section>
+
+        <!-- Controls Section (Sort & Filter) -->
+        <section class="controls-section">
+            <div class="filter-container">
+                <label for="filterCategory">Filter by Category:</label>
+                <select id="filterCategory">
+                    <option value="All">All</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Comedy">Comedy</option>
+                    <option value="Technical">Technical</option>
+                </select>
+            </div>
+            <div class="sort-container">
+                <button id="sortAsc">Sort by Title A → Z</button>
+                <button id="sortDesc">Sort by Title Z → A</button>
+            </div>
+        </section>
+
+        <!-- Books Display Section -->
+        <section class="display-section">
+            <h2>Available Books</h2>
+            <div class="book-grid" id="bookGrid">
+                <!-- Book cards will be rendered here by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // admin.js content embedded here
+        const BOOK_IMAGE_URL = "m.media-amazon.com";
+
+        let booksArray = []; // Array to store all books
+        let filteredBooksArray = []; // Array to store currently filtered/sorted books
+
+        // References to DOM elements
+        const bookGrid = document.getElementById('bookGrid');
+        const addBookForm = document.getElementById('addBookForm');
+        const filterCategoryDropdown = document.getElementById('filterCategory');
+        const sortAscButton = document.getElementById('sortAsc');
+        const sortDescButton = document.getElementById('sortDesc');
+
+        // --- Rendering Functions ---
+
+        function renderBooks() {
+            bookGrid.innerHTML = ''; // Clear existing cards
+            
+            // Determine which array to render (filtered/sorted or main array)
+            const booksToDisplay = filteredBooksArray.length > 0 || filterCategoryDropdown.value !== 'All' ? filteredBooksArray : booksArray;
+
+            booksToDisplay.forEach((book, index) => {
+                const card = document.createElement('div');
+                card.classList.add('book-card');
+                card.innerHTML = `
+                    <img src="${book.imageUrl}" alt="${book.title}">
+                    <div class="card-content">
+                        <h4>${book.title}</h4>
+                        <p>by ${book.author}</p>
+                        <p><strong>${book.category}</strong></p>
+                    </div>
+                    <button class="delete-btn" data-index="${index}">Delete</button>
+                `;
+                bookGrid.appendChild(card);
+            });
+
+            // Attach event listeners to newly created delete buttons
+            document.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', handleDelete);
+            });
+        }
+
+        // --- Event Handlers ---
+
+        function handleAddBook(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const author = document.getElementById('author').value;
+            const category = document.getElementById('category').value;
+
+            const newBook = {
+                title,
+                author,
+                category,
+                imageUrl: BOOK_IMAGE_URL
+            };
+
+            booksArray.push(newBook);
+            filterBooks(); // Re-filter and re-render after adding
+            addBookForm.reset();
+        }
+
+        function handleDelete(event) {
+            // Note: This deletion logic is simplified for single-file implementation using current index
+            const indexToDelete = event.target.getAttribute('data-index');
+            
+            // Find the actual book object that was clicked in the currently displayed (filtered/sorted) array
+            const booksToDisplay = filteredBooksArray.length > 0 || filterCategoryDropdown.value !== 'All' ? filteredBooksArray : booksArray;
+            const bookToDelete = booksToDisplay[indexToDelete];
+
+            // Find its index in the main source array (booksArray) and remove it
+            const actualIndexInMainArray = booksArray.findIndex(b => b.title === bookToDelete.title && b.author === bookToDelete.author);
+            if (actualIndexInMainArray > -1) {
+                booksArray.splice(actualIndexInMainArray, 1);
+            }
+
+            filterBooks(); // Re-filter and re-render after deleting
+        }
+
+        function filterBooks() {
+            const selectedCategory = filterCategoryDropdown.value;
+
+            if (selectedCategory === 'All') {
+                filteredBooksArray = [...booksArray];
+            } else {
+                filteredBooksArray = booksArray.filter(book => book.category === selectedCategory);
+            }
+            
+            // Keep current sort order after filtering
+            if (sortAscButton.classList.contains('active')) {
+                sortBooks('asc');
+            } else if (sortDescButton.classList.contains('active')) {
+                sortBooks('desc');
+            } else {
+                renderBooks();
+            }
+        }
+
+        function sortBooks(direction) {
+            // Sort the *currently filtered* list of books
+            filteredBooksArray.sort((a, b) => {
+                const titleA = a.title.toLowerCase();
+                const titleB = b.title.toLowerCase();
+
+                if (titleA < titleB) return direction === 'asc' ? -1 : 1;
+                if (titleA > titleB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Update active class for buttons (visual feedback, requires CSS for active class which wasn't in original CSS but can be added)
+            // For now, this just manages the internal state for filterBooks to use
+            if (direction === 'asc') {
+                sortAscButton.classList.add('active');
+                sortDescButton.classList.remove('active');
+            } else {
+                sortDescButton.classList.add('active');
+                sortAscButton.classList.remove('active');
+            }
+
+            renderBooks();
+        }
+
+        // --- Initialize Event Listeners ---
+
+        addBookForm.addEventListener('submit', handleAddBook);
+        filterCategoryDropdown.addEventListener('change', filterBooks);
+        sortAscButton.addEventListener('click', () => sortBooks('asc'));
+        sortDescButton.addEventListener('click', () => sortBooks('desc'));
+
+        // Initialize the display on page load
+        filterBooks(); 
+    </script>
+</body>
+</html>
